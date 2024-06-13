@@ -15,11 +15,17 @@
 static std::string newConfigName;
 static std::vector<std::string> configEntries;
 
+static bool scopedCheck;
 static bool isMacroEnabled;
+// I changed the hotkey from G to P but im too lazy to change the name of this variable
 static bool wasGPressed;
+static bool wasF2Pressed;
+static bool wasF1Pressed;
+
 
 static int verticalValue = 1;
-static int angle = 1;
+static int angle = 90;
+static int multiplier = 5;
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
 	HWND window,
@@ -260,6 +266,7 @@ void dragMouse(int delay, double angle, double distance) {
 	input.type = INPUT_MOUSE;
 
 	double angleRad = angle * 3.141592653 / 180.0;
+	distance = distance * multiplier;
 	input.mi.dx = static_cast<int>(distance * cos(angleRad));
 	input.mi.dy = static_cast<int>(distance * sin(angleRad));
 	input.mi.dwFlags = MOUSEEVENTF_MOVE;
@@ -337,9 +344,13 @@ void gui::Render() noexcept
 )");
 
 	ImGui::Checkbox(" [Enable / Disable]", &isMacroEnabled);
+	ImGui::Checkbox(" [Only When Scoped In]", &scopedCheck);
 
 	ImGui::SliderInt(" [Speed]", &verticalValue, 1, 9);
 	ImGui::SliderInt(" [Angle]", &angle, 1, 360);
+	ImGui::SliderInt(" [Multiplier]", &multiplier, 1, 10);
+
+
 
 
 
@@ -390,7 +401,7 @@ void gui::Render() noexcept
 
 
 
-	if (GetAsyncKeyState(0x47) & 0x8000)
+	if (GetAsyncKeyState(0x50) & 0x8000)
 	{
 		if (!wasGPressed)
 		{
@@ -403,16 +414,63 @@ void gui::Render() noexcept
 		wasGPressed = false;
 	}
 
+	// HOTKEYS TO ADJUST STRENGTH
+	if (GetAsyncKeyState(0x70) & 0x8000)
+	{
+		if (!wasF1Pressed && !(verticalValue <= 1))
+		{
+			verticalValue = verticalValue - 1;
+			wasF1Pressed = true;
+		}
+	}
+	else
+	{
+		wasF1Pressed = false;
+	}
+
+
+
+	if (GetAsyncKeyState(0x71) & 0x8000)
+	{
+		if (!wasF2Pressed && !(verticalValue >= 9))
+		{
+			verticalValue = verticalValue + 1;
+			wasF2Pressed = true;
+		}
+	}
+	else
+	{
+		wasF2Pressed = false;
+	}
+
+
+
 	if (isMacroEnabled) {
-		while (true) {
-			if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
-				int vDelay = 10 - (verticalValue);
-				dragMouse(vDelay, angle, 2);
-			}
-			else {
-				break;
+
+		if (!scopedCheck) {
+			while (true) {
+				if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
+					int vDelay = 10 - (verticalValue);
+					dragMouse(vDelay, angle, 2);
+				}
+				else {
+					break;
+				}
 			}
 		}
+
+		else {
+			while (true) {
+				if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) && (GetAsyncKeyState(VK_RBUTTON) & 0x8000)) {
+					int vDelay = 10 - (verticalValue);
+					dragMouse(vDelay, angle, 2);
+				}
+				else {
+					break;
+				}
+			}
+		}
+		
 	}
 
 	ImVec2 windowSize = ImGui::GetIO().DisplaySize;
